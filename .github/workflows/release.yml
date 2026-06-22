@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux-x86_64:
+    name: Linux x86_64
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate formatting
+        run: cargo fmt --check
+
+      - name: Validate lints
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      - name: Test
+        run: cargo test --locked
+
+      - name: Build release binary
+        run: cargo build --release --locked
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          target/release/omafetch list
+          target/release/omafetch cpu memory >/tmp/omafetch-compact.txt
+          target/release/omafetch >/tmp/omafetch-default.txt
+
+          non_omarchy_home="$(mktemp -d)"
+          env HOME="$non_omarchy_home" target/release/omafetch >/tmp/omafetch-no-omarchy.txt
+
+          minimal_home="$(mktemp -d)"
+          mkdir -p "$minimal_home/bin"
+          env HOME="$minimal_home" PATH="$minimal_home/bin" target/release/omafetch >/tmp/omafetch-minimal-path.txt
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF_TYPE" != "tag" ]]; then
+            version="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')-${GITHUB_SHA::7}"
+          fi
+
+          artifact="omafetch-${version}-x86_64-unknown-linux-gnu"
+          mkdir -p "dist/${artifact}"
+          install -Dm755 target/release/omafetch "dist/${artifact}/omafetch"
+          install -Dm644 README.md "dist/${artifact}/README.md"
+          install -Dm644 LICENSE "dist/${artifact}/LICENSE"
+
+          tar -C dist -czf "dist/${artifact}.tar.gz" "${artifact}"
+          sha256sum "dist/${artifact}.tar.gz" > "dist/${artifact}.tar.gz.sha256"
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: omafetch-linux-x86_64
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/*.sha256

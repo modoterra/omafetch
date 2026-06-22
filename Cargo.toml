@@ -1,0 +1,10 @@
+[package]
+name = "omafetch"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+libc = "0.2"
+owo-colors = "4"
+unicode-width = "0.2"

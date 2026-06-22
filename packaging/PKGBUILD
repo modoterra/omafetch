@@ -1,0 +1,28 @@
+# Maintainer: Omarchy
+pkgname=omafetch
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Omarchy-native Rust fetch tool'
+arch=('x86_64')
+url='https://github.com/modoterra/omafetch'
+license=('MIT')
+makedepends=('cargo' 'rust')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  cargo build --release --locked
+}
+
+check() {
+  cd "$srcdir/$pkgname-$pkgver"
+  cargo test --locked
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 "target/release/omafetch" "$pkgdir/usr/bin/omafetch"
+  install -Dm644 "README.md" "$pkgdir/usr/share/doc/omafetch/README.md"
+  install -Dm644 "LICENSE" "$pkgdir/usr/share/licenses/omafetch/LICENSE"
+}

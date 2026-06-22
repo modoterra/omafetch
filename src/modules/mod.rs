@@ -1,0 +1,28 @@
+pub mod registry;
+pub mod types;
+
+mod battery;
+mod cpu;
+mod disk;
+mod display;
+mod gpu;
+mod gtt_memory;
+mod host;
+mod kernel;
+mod kernel_config;
+mod localip;
+mod memory;
+mod omarchy;
+mod omarchy_channel;
+mod omarchy_source;
+mod omarchy_updated;
+mod os;
+mod os_age;
+mod packages;
+mod rootfs;
+mod shell;
+mod swap;
+mod terminal;
+mod theme;
+mod uptime;
+mod wm;
