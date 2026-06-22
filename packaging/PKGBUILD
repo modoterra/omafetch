@@ -1,5 +1,4 @@
-# Maintainer: Christoffer Hallas <hallas@modoterra.xyz>
-# Contributor: Modoterra Corporation
+# Maintainer: Modoterra <hallas@modoterra.xyz>
 pkgname=omafetch
 pkgver=0.1.0
 pkgrel=1
