@@ -45,5 +45,6 @@
 
 ## Packaging
 
+- `install.sh` downloads the GitHub Release tarball, verifies the published sha256, and installs to `~/.local/bin/omafetch` by default.
 - Starter Arch packaging is in `packaging/PKGBUILD`.
 - Package installs the binary to `/usr/bin/omafetch`, README to `/usr/share/doc/omafetch/`, and MIT license to `/usr/share/licenses/omafetch/`.

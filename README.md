@@ -15,6 +15,33 @@ On systems without Omarchy state, Omarchy-specific rows render as `unknown`.
 Other system rows are collected from standard Linux files and common desktop
 tools when available.
 
+## Install
+
+Linux x86_64, from the latest GitHub Release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash
+```
+
+That verifies the published checksum and installs `~/.local/bin/omafetch`.
+
+```bash
+# system-wide
+curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash -s -- --prefix /usr/local
+
+# pin a version
+curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash -s -- --version 0.1.0
+
+# remove
+curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash -s -- --uninstall
+```
+
+From source:
+
+```bash
+cargo install --git https://github.com/modoterra/omafetch --locked
+```
+
 ## Usage
 
 Show the full Omarchy/system view:
