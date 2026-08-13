@@ -37,10 +37,11 @@ pub fn run() -> Result<()> {
             let document =
                 crate::render::document::RenderDocument::from_outputs(&outputs, is_default_output);
             let output = crate::render::layout::render_document(&state, &document);
-            write_stdout(&output)?;
-
             if is_about {
+                write_stdout(&format!("{output}\n"))?;
                 wait_for_key()?;
+            } else {
+                write_stdout(&output)?;
             }
         }
     }

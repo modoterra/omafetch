@@ -69,7 +69,7 @@ the full fetch, in `~/.config/hypr/hyprland.lua`:
 ```lua
 o.window("org.omarchy.omafetch", { float = true })
 o.window("org.omarchy.omafetch", { center = true })
-o.window("org.omarchy.omafetch", { size = { 980, 880 } })
+o.window("org.omarchy.omafetch", { size = { 724, 714 } })
 ```
 
 `omarchy launch about` and Style → About still use fastfetch until Omarchy
