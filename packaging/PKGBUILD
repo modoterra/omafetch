@@ -8,7 +8,7 @@ url='https://github.com/modoterra/omafetch'
 license=('MIT')
 makedepends=('cargo' 'rust')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/modoterra/omafetch/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('4e40bd8f8898e47a48121b619b9558736593af6e25c2841f7864e0c369922be3')
+sha256sums=('107d29a2695bc745e00c28ace33f04465bb2f4ba935bc443c6ee3ce6d012368a')
 
 build() {
   cd "$srcdir/$pkgname-$pkgver"
