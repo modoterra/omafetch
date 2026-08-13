@@ -12,7 +12,8 @@ impl Module for Gpu {
     }
 
     fn collect(&self, _ctx: &ModuleContext<'_>) -> Option<ModuleOutput> {
-        let value = crate::probe::command::run_capture("lspci", &["-mm", "-d", "::03"])
+        // lspci class IDs are 4 hex digits; -d ::03 matches 0003, not 03xx display devices.
+        let value = crate::probe::command::run_capture("lspci", &["-mm"])
             .and_then(|output| gpu_from_lspci(&output))
             .unwrap_or_else(|| "unknown".to_string());
 
@@ -20,20 +21,31 @@ impl Module for Gpu {
     }
 }
 
-fn gpu_from_lspci(input: &str) -> Option<String> {
-    input
-        .lines()
-        .filter_map(|line| {
-            gpu_from_machine_line(line).or_else(|| {
-                line.split_once(": ")
-                    .map(|(_, value)| clean_gpu(value))
-                    .filter(|_| is_gpu_line(line))
-            })
-        })
-        .next()
+struct GpuDevice {
+    class: String,
+    name: String,
 }
 
-fn gpu_from_machine_line(line: &str) -> Option<String> {
+impl GpuDevice {
+    fn is_discrete(&self) -> bool {
+        is_discrete(&self.class, &self.name)
+    }
+}
+
+fn gpu_from_lspci(input: &str) -> Option<String> {
+    let devices: Vec<GpuDevice> = input.lines().filter_map(parse_gpu).collect();
+    devices
+        .iter()
+        .find(|device| device.is_discrete())
+        .or_else(|| devices.first())
+        .map(|device| device.name.clone())
+}
+
+fn parse_gpu(line: &str) -> Option<GpuDevice> {
+    gpu_from_machine_line(line).or_else(|| gpu_from_human_line(line))
+}
+
+fn gpu_from_machine_line(line: &str) -> Option<GpuDevice> {
     let fields = quoted_fields(line);
     let class = fields.first()?;
     if !is_gpu_class(class) {
@@ -42,7 +54,30 @@ fn gpu_from_machine_line(line: &str) -> Option<String> {
 
     let vendor = fields.get(1)?;
     let model = fields.get(2)?;
-    Some(clean_gpu(&format!("{vendor} {model}")))
+    Some(GpuDevice {
+        class: class.clone(),
+        name: clean_gpu(&format!("{vendor} {model}")),
+    })
+}
+
+fn gpu_from_human_line(line: &str) -> Option<GpuDevice> {
+    if !is_gpu_line(line) {
+        return None;
+    }
+
+    let (_, value) = line.split_once(": ")?;
+    let class = if line.contains("3D controller") {
+        "3D controller"
+    } else if line.contains("VGA compatible controller") {
+        "VGA compatible controller"
+    } else {
+        "Display controller"
+    };
+
+    Some(GpuDevice {
+        class: class.to_string(),
+        name: clean_gpu(value),
+    })
 }
 
 fn quoted_fields(line: &str) -> Vec<String> {
@@ -80,6 +115,37 @@ fn is_gpu_class(class: &str) -> bool {
     )
 }
 
+fn is_discrete(class: &str, name: &str) -> bool {
+    if class == "3D controller" {
+        return true;
+    }
+
+    let name = name.to_ascii_lowercase();
+    if name.contains("nvidia") && !name.contains("tegra") {
+        return true;
+    }
+
+    is_amd_discrete_name(&name) || is_intel_discrete_name(&name)
+}
+
+fn is_amd_discrete_name(name: &str) -> bool {
+    if let Some(sku) = name.split("radeon rx").nth(1) {
+        let sku = sku.trim();
+        if sku.starts_with("vega 56") || sku.starts_with("vega 64") {
+            return true;
+        }
+
+        let token = sku.split([' ', '/']).next().unwrap_or("");
+        return token.len() >= 3 && token.chars().all(|ch| ch.is_ascii_digit());
+    }
+
+    name.contains("radeon pro w") || name.contains("radeon vii")
+}
+
+fn is_intel_discrete_name(name: &str) -> bool {
+    name.contains("arc a") || name.contains("arc b") || name.contains(" dg2")
+}
+
 fn clean_gpu(value: &str) -> String {
     value
         .replace("Advanced Micro Devices, Inc. [AMD/ATI]", "AMD")
@@ -111,6 +177,101 @@ mod tests {
                 "AMD Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics]"
                     .to_string()
             )
+        );
+    }
+
+    #[test]
+    fn ignores_non_gpu_lspci_devices() {
+        let input = concat!(
+            "00:00.0 \"Host bridge\" \"Advanced Micro Devices, Inc. [AMD]\" \"Strix/Strix Halo Root Complex\" -r02 -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+            "c3:00.0 \"Display controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics]\" -rc1 -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+            "c3:00.1 \"Audio device\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Radeon High Definition Audio Controller\" -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some(
+                "AMD Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics]"
+                    .to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn prefers_discrete_nvidia_3d_controller_over_intel_igpu() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Raptor Lake-P [Iris Xe Graphics]\" -r04 -p00 \"Dell\" \"Device 0c0b\"\n",
+            "01:00.0 \"3D controller\" \"NVIDIA Corporation\" \"AD107M [GeForce RTX 4060 Max-Q / Mobile]\" -ra1 -p00 \"Dell\" \"Device 0c0b\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("NVIDIA AD107M [GeForce RTX 4060 Max-Q / Mobile]".to_string())
+        );
+    }
+
+    #[test]
+    fn prefers_discrete_nvidia_vga_over_intel_igpu() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Alder Lake-P GT2 [Iris Xe Graphics]\" -r0c -p00 \"Dell\" \"Device 0b1a\"\n",
+            "01:00.0 \"VGA compatible controller\" \"NVIDIA Corporation\" \"GA104 [GeForce RTX 3070]\" -ra1 -p00 \"Dell\" \"Device 0b1a\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("NVIDIA GA104 [GeForce RTX 3070]".to_string())
+        );
+    }
+
+    #[test]
+    fn prefers_discrete_amd_rx_over_igpu() {
+        let input = concat!(
+            "c3:00.0 \"Display controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Strix Halo [Radeon Graphics / Radeon 8050S Graphics / Radeon 8060S Graphics]\" -rc1 -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+            "01:00.0 \"VGA compatible controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Navi 48 [Radeon RX 9070 XT]\" -p00 \"AMD\" \"Device 0001\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("AMD Navi 48 [Radeon RX 9070 XT]".to_string())
+        );
+    }
+
+    #[test]
+    fn prefers_discrete_intel_arc_over_igpu() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Raptor Lake-S GT1 [UHD Graphics 770]\" -p00 \"ASUS\" \"Device 0001\"\n",
+            "03:00.0 \"VGA compatible controller\" \"Intel Corporation\" \"DG2 [Arc A770]\" -p00 \"Intel Corporation\" \"Device 0000\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("Intel DG2 [Arc A770]".to_string())
+        );
+    }
+
+    #[test]
+    fn does_not_treat_intel_arc_igpu_as_discrete() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Meteor Lake-P [Intel Arc Graphics]\" -p00 \"Dell\" \"Device 0001\"\n",
+            "01:00.0 \"3D controller\" \"NVIDIA Corporation\" \"AD107M [GeForce RTX 4060 Max-Q / Mobile]\" -p00 \"Dell\" \"Device 0001\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("NVIDIA AD107M [GeForce RTX 4060 Max-Q / Mobile]".to_string())
+        );
+    }
+
+    #[test]
+    fn does_not_treat_amd_rx_vega_apu_as_discrete() {
+        let input = concat!(
+            "05:00.0 \"VGA compatible controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Picasso [Radeon RX Vega 11]\" -p00 \"Lenovo\" \"Device 1234\"\n",
+            "06:00.0 \"VGA compatible controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Navi 48 [Radeon RX 9070 XT]\" -p00 \"AMD\" \"Device 0001\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("AMD Navi 48 [Radeon RX 9070 XT]".to_string())
         );
     }
 }
