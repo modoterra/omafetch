@@ -25,13 +25,23 @@ pub fn discover(paths: &OmarchyPaths) -> ThemeIdentity {
 }
 
 fn discover_wallpaper(paths: &OmarchyPaths) -> Option<String> {
+    if let Some(name) = image_name_from(&paths.current_background) {
+        return Some(name);
+    }
+
     let backgrounds = paths.current_theme_dir.join("backgrounds");
     let entries = std::fs::read_dir(backgrounds).ok()?;
 
     entries
         .filter_map(Result::ok)
-        .filter_map(|entry| entry.file_name().to_str().map(ToString::to_string))
-        .find(|name| name.ends_with(".png") || name.ends_with(".jpg") || name.ends_with(".jpeg"))
+        .filter_map(|entry| image_name_from(&entry.path()))
+        .next()
+}
+
+fn image_name_from(path: &std::path::Path) -> Option<String> {
+    let name = path.file_name()?.to_str()?;
+    (name.ends_with(".png") || name.ends_with(".jpg") || name.ends_with(".jpeg"))
+        .then(|| name.to_string())
 }
 
 fn read_toml_string(input: &str, key: &str) -> Option<String> {
@@ -75,5 +85,21 @@ mod tests {
     #[test]
     fn formats_theme_display_name() {
         assert_eq!(display_name("dazzle-dusk"), "Dazzle Dusk");
+    }
+
+    #[test]
+    fn wallpaper_name_from_background_path() {
+        assert_eq!(
+            image_name_from(std::path::Path::new(
+                "/home/user/.local/state/omarchy/current/theme/backgrounds/0-dot-hands.jpg"
+            )),
+            Some("0-dot-hands.jpg".to_string())
+        );
+        assert_eq!(
+            image_name_from(std::path::Path::new(
+                "/home/user/.local/state/omarchy/current/theme/colors.toml"
+            )),
+            None
+        );
     }
 }

@@ -29,8 +29,8 @@
 
 - Omarchy state comes from existing Omarchy files; do not add an omafetch config/theme system.
 - Current Omarchy paths are centralized in `src/omarchy/paths.rs`.
-- Theme discovery reads `~/.config/omarchy/current/theme.name` and `~/.config/omarchy/current/theme/colors.toml`.
-- Omarchy version reads `~/.local/share/omarchy/version`; do not use the omafetch crate version for the `Omarchy` row.
+- Theme discovery reads `~/.local/state/omarchy/current/theme.name` and `theme/colors.toml`, falling back to `~/.config/omarchy/current` when the older layout is still present. The current wallpaper prefers `current/background`.
+- Omarchy version follows `omarchy-version`: `dev ($hash)` when `OMARCHY_PATH` is a linked checkout, otherwise `pacman -Q omarchy`, then `$OMARCHY_PATH/version`. Do not use the omafetch crate version for the `Omarchy` row.
 
 ## Probe Constraints
 

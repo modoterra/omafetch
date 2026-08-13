@@ -14,6 +14,10 @@ impl Module for OmarchySource {
     fn collect(&self, _ctx: &ModuleContext<'_>) -> Option<ModuleOutput> {
         let value = crate::omarchy::paths::OmarchyPaths::discover()
             .and_then(|paths| {
+                if paths.is_packaged_install() {
+                    return None;
+                }
+
                 let path = paths.install_dir.to_string_lossy().to_string();
                 let branch = crate::probe::command::run_capture(
                     "git",
