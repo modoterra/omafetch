@@ -17,6 +17,16 @@ pub fn run() -> Result<()> {
             output.push('\n');
             write_stdout(&output)?;
         }
+        Some(Command::Bind) => {
+            let message = crate::bind::bind(&crate::bind::BindPaths::discover()?)?;
+            write_stdout(&format!("{message}\n"))?;
+            let _ = crate::probe::command::run_capture("hyprctl", &["reload"]);
+        }
+        Some(Command::Unbind) => {
+            let message = crate::bind::unbind(&crate::bind::BindPaths::discover()?)?;
+            write_stdout(&format!("{message}\n"))?;
+            let _ = crate::probe::command::run_capture("hyprctl", &["reload"]);
+        }
         Some(Command::Public) | Some(Command::About) | None => {
             let state = OmarchyState::discover();
             let ctx = ModuleContext { omarchy: &state };

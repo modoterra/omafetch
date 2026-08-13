@@ -1,4 +1,5 @@
 mod app;
+mod bind;
 mod cli;
 mod modules;
 mod omarchy;

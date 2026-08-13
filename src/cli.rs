@@ -9,6 +9,8 @@ pub enum Command {
     List,
     Public,
     About,
+    Bind,
+    Unbind,
 }
 
 impl Cli {
@@ -19,6 +21,8 @@ impl Cli {
             "list" => Some(Command::List),
             "public" => Some(Command::Public),
             "about" => Some(Command::About),
+            "bind" => Some(Command::Bind),
+            "unbind" => Some(Command::Unbind),
             _ => None,
         }) {
             return Self {
@@ -87,6 +91,28 @@ mod tests {
         let cli = Cli::parse(["about".to_string()]);
         assert_eq!(cli.command, Some(Command::About));
         assert!(cli.modules.is_empty());
+    }
+
+    #[test]
+    fn parses_bind_command() {
+        assert_eq!(
+            Cli::parse(["bind".to_string()]),
+            Cli {
+                command: Some(Command::Bind),
+                modules: Vec::new()
+            }
+        );
+    }
+
+    #[test]
+    fn parses_unbind_command() {
+        assert_eq!(
+            Cli::parse(["unbind".to_string()]),
+            Cli {
+                command: Some(Command::Unbind),
+                modules: Vec::new()
+            }
+        );
     }
 
     #[test]

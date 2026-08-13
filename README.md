@@ -56,23 +56,15 @@ Show that same view and wait for a key (for the Omarchy About window):
 omafetch about
 ```
 
-The stock Omarchy About item runs `omarchy-launch-about`. Install the
-wrapper from `packaging/omarchy-launch-about` as `~/.local/bin/omarchy-launch-about`
-and put `~/.local/bin` ahead of `/usr/share/omarchy/bin` on `PATH` so that
-command opens omafetch. Menu, `omarchy launch about`, and Style → About
-then stay on the normal Omarchy item.
+Hook the stock Omarchy About item (`omarchy-launch-about`) to omafetch:
 
-That uses window class `org.omarchy.omafetch`. Give it a float size that fits
-the full fetch, in `~/.config/hypr/hyprland.lua`:
-
-```lua
-o.window("org.omarchy.omafetch", { float = true })
-o.window("org.omarchy.omafetch", { center = true })
-o.window("org.omarchy.omafetch", { size = { 724, 714 } })
+```bash
+omafetch bind
 ```
 
-`omarchy launch about` and Style → About still use fastfetch until Omarchy
-switches.
+That writes `~/.local/bin/omarchy-launch-about`, adds `~/.config/hypr/omafetch.lua`,
+and requires it from `hyprland.lua`. Menu About, `omarchy launch about`, and
+Style → About keep the normal Omarchy item. `omafetch unbind` undoes it.
 
 List available modules:
 
