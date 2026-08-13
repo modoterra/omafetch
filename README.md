@@ -24,6 +24,11 @@ curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh 
 ```
 
 That verifies the published checksum and installs `~/.local/bin/omafetch`.
+On Omarchy, hook the stock About item next:
+
+```bash
+omafetch bind
+```
 
 ```bash
 # system-wide
@@ -32,7 +37,8 @@ curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh 
 # pin a version
 curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash -s -- --version 0.1.0
 
-# remove
+# remove the Hyprland hook, then the binary and wrapper
+omafetch unbind
 curl -fsSL https://raw.githubusercontent.com/modoterra/omafetch/main/install.sh | bash -s -- --uninstall
 ```
 
@@ -40,6 +46,7 @@ From source:
 
 ```bash
 cargo install --git https://github.com/modoterra/omafetch --locked
+omafetch bind
 ```
 
 ## Usage
@@ -50,21 +57,38 @@ Show the full Omarchy/system view:
 omafetch
 ```
 
-Show that same view and wait for a key (for the Omarchy About window):
+Show that same view and wait for a key. This is what the Omarchy About
+window runs:
 
 ```bash
 omafetch about
 ```
 
-Hook the stock Omarchy About item (`omarchy-launch-about`) to omafetch:
+Replace Omarchy's `omarchy-launch-about` (fastfetch) with omafetch, without
+changing the menu item itself:
 
 ```bash
 omafetch bind
 ```
 
-That writes `~/.local/bin/omarchy-launch-about`, adds `~/.config/hypr/omafetch.lua`,
-and requires it from `hyprland.lua`. Menu About, `omarchy launch about`, and
-Style → About keep the normal Omarchy item. `omafetch unbind` undoes it.
+`bind` writes `~/.local/bin/omarchy-launch-about`, writes
+`~/.config/hypr/omafetch.lua` (PATH so the wrapper wins, plus a 724×714
+float for `org.omarchy.omafetch`), and adds `require("hypr.omafetch")` to
+`~/.config/hypr/hyprland.lua`. After that, menu **About**,
+`omarchy launch about`, and **Style → About** all open omafetch. Restart
+the Omarchy shell if an already-running session still opens fastfetch.
+
+```bash
+omafetch unbind
+```
+
+`unbind` removes the wrapper, the Hyprland drop-in, and the require line.
+
+Default fetch with local addresses and mount paths stripped, for sharing:
+
+```bash
+omafetch public
+```
 
 List available modules:
 
@@ -157,9 +181,21 @@ cargo test
 cargo run
 cargo run -- cpu memory shell
 cargo run -- list
+cargo run -- about
 ```
 
 ## Packaging
+
+`install.sh` downloads the GitHub Release tarball, verifies the published
+sha256, installs `omafetch`, and writes the `omarchy-launch-about` wrapper
+next to it. `omafetch bind` is still required so Hyprland prefers that
+wrapper over Omarchy's copy.
+
+The wrapper source also lives at:
+
+```text
+packaging/omarchy-launch-about
+```
 
 A starter Arch package recipe lives at:
 

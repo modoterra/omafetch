@@ -6,6 +6,7 @@
 - Use `cargo run` to inspect the full default fetch output.
 - Use `cargo run -- cpu memory` or another module list to inspect compact explicit output.
 - Use `cargo run -- list` to verify module names exposed to users.
+- Use `cargo run -- about` to inspect About output; it must not wait when stdin is not a TTY.
 
 ## CLI Semantics
 
@@ -47,6 +48,7 @@
 
 ## Packaging
 
-- `install.sh` downloads the GitHub Release tarball, verifies the published sha256, and installs to `~/.local/bin/omafetch` by default.
+- `install.sh` downloads the GitHub Release tarball, verifies the published sha256, and installs `~/.local/bin/omafetch` plus the `omarchy-launch-about` wrapper.
+- `omafetch bind` is the supported way to hook the stock Omarchy About item; it writes `~/.config/hypr/omafetch.lua` and requires that file from `hyprland.lua`.
 - Starter Arch packaging is in `packaging/PKGBUILD`.
 - Package installs the binary to `/usr/bin/omafetch`, README to `/usr/share/doc/omafetch/`, and MIT license to `/usr/share/licenses/omafetch/`.
