@@ -274,4 +274,72 @@ mod tests {
             Some("AMD Navi 48 [Radeon RX 9070 XT]".to_string())
         );
     }
+
+    #[test]
+    fn prefers_discrete_amd_rx_vega_56_over_igpu() {
+        let input = concat!(
+            "05:00.0 \"VGA compatible controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Raven Ridge [Radeon Vega Series / Radeon Vega Mobile Series]\" -p00 \"HP\" \"Device 0001\"\n",
+            "01:00.0 \"VGA compatible controller\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Vega 10 XL/XT [Radeon RX Vega 56/64]\" -p00 \"AMD\" \"Device 0001\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("AMD Vega 10 XL/XT [Radeon RX Vega 56/64]".to_string())
+        );
+    }
+
+    #[test]
+    fn prefers_discrete_intel_arc_b_over_igpu() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Raptor Lake-S GT1 [UHD Graphics 770]\" -p00 \"ASUS\" \"Device 0001\"\n",
+            "03:00.0 \"VGA compatible controller\" \"Intel Corporation\" \"Battlemage G21 [Arc B580]\" -p00 \"Intel Corporation\" \"Device 0000\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("Intel Battlemage G21 [Arc B580]".to_string())
+        );
+    }
+
+    #[test]
+    fn prefers_human_readable_discrete_nvidia_over_intel_igpu() {
+        let input = concat!(
+            "00:02.0 VGA compatible controller: Intel Corporation Raptor Lake-P [Iris Xe Graphics]\n",
+            "01:00.0 3D controller: NVIDIA Corporation AD107M [GeForce RTX 4060 Max-Q / Mobile]\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("NVIDIA AD107M [GeForce RTX 4060 Max-Q / Mobile]".to_string())
+        );
+    }
+
+    #[test]
+    fn does_not_treat_nvidia_tegra_as_discrete() {
+        let input = concat!(
+            "00:02.0 \"VGA compatible controller\" \"Intel Corporation\" \"Alder Lake-P GT2 [Iris Xe Graphics]\" -p00 \"Dell\" \"Device 0001\"\n",
+            "01:00.0 \"VGA compatible controller\" \"NVIDIA Corporation\" \"Tegra X1 (nvgpu)\" -p00 \"NVIDIA Corporation\" \"Device 0001\"\n",
+        );
+
+        assert_eq!(
+            gpu_from_lspci(input),
+            Some("Intel Alder Lake-P GT2 [Iris Xe Graphics]".to_string())
+        );
+    }
+
+    #[test]
+    fn empty_lspci_yields_no_gpu() {
+        assert_eq!(gpu_from_lspci(""), None);
+        assert_eq!(gpu_from_lspci("\n"), None);
+    }
+
+    #[test]
+    fn non_gpu_lspci_yields_no_gpu() {
+        let input = concat!(
+            "00:00.0 \"Host bridge\" \"Advanced Micro Devices, Inc. [AMD]\" \"Strix/Strix Halo Root Complex\" -r02 -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+            "c3:00.1 \"Audio device\" \"Advanced Micro Devices, Inc. [AMD/ATI]\" \"Radeon High Definition Audio Controller\" -p00 \"Framework Computer Inc.\" \"Device 000a\"\n",
+        );
+
+        assert_eq!(gpu_from_lspci(input), None);
+    }
 }
