@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
@@ -55,6 +56,31 @@ fn help_exits_zero_without_network() {
     assert!(
         stdout.contains("--version"),
         "help should describe --version"
+    );
+}
+
+#[test]
+fn help_works_when_piped_to_bash() {
+    let script = std::fs::read_to_string(install_sh()).expect("read install.sh");
+    let output = Command::new("bash")
+        .args(["-s", "--", "--help"])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .and_then(|mut child| {
+            child
+                .stdin
+                .as_mut()
+                .expect("stdin")
+                .write_all(script.as_bytes())?;
+            child.wait_with_output()
+        })
+        .expect("pipe install.sh to bash");
+    assert_success(&output, "cat install.sh | bash -s -- --help");
+    assert!(
+        stdout_text(&output).contains("--prefix"),
+        "piped help should describe --prefix"
     );
 }
 
