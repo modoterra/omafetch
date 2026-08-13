@@ -60,7 +60,16 @@ Point the menu About item at it by adding this to
 `~/.config/omarchy/extensions/omarchy-menu.jsonc`:
 
 ```jsonc
-"about": {"action":"omarchy-launch-or-focus-tui \"bash -c 'omafetch about'\""}
+"about": {"action":"omarchy-launch-or-focus-tui omafetch about"}
+```
+
+That uses window class `org.omarchy.omafetch`. Give it a float size that fits
+the full fetch, in `~/.config/hypr/hyprland.lua`:
+
+```lua
+o.window("org.omarchy.omafetch", { float = true })
+o.window("org.omarchy.omafetch", { center = true })
+o.window("org.omarchy.omafetch", { size = { 980, 880 } })
 ```
 
 `omarchy launch about` and Style → About still use fastfetch until Omarchy
