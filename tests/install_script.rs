@@ -151,6 +151,13 @@ fn builds_destination_paths() {
 }
 
 #[test]
+fn builds_about_launcher_path() {
+    let output = sourced(r#"printf '%s\n' "$(about_launcher_path /usr/local/)""#);
+    assert_success(&output, "about_launcher_path");
+    assert_eq!(stdout_text(&output), "/usr/local/bin/omarchy-launch-about");
+}
+
+#[test]
 fn parse_args_sets_defaults_and_flags() {
     let output = sourced(
         r#"

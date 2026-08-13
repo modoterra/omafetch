@@ -56,12 +56,11 @@ Show that same view and wait for a key (for the Omarchy About window):
 omafetch about
 ```
 
-Point the menu About item at it by adding this to
-`~/.config/omarchy/extensions/omarchy-menu.jsonc`:
-
-```jsonc
-"about": {"action":"omarchy-launch-or-focus-tui omafetch about"}
-```
+The stock Omarchy About item runs `omarchy-launch-about`. Install the
+wrapper from `packaging/omarchy-launch-about` as `~/.local/bin/omarchy-launch-about`
+and put `~/.local/bin` ahead of `/usr/share/omarchy/bin` on `PATH` so that
+command opens omafetch. Menu, `omarchy launch about`, and Style → About
+then stay on the normal Omarchy item.
 
 That uses window class `org.omarchy.omafetch`. Give it a float size that fits
 the full fetch, in `~/.config/hypr/hyprland.lua`:

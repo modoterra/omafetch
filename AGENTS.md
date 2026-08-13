@@ -12,7 +12,7 @@
 - `omafetch` renders the full default module order from `ModuleRegistry::defaults()`.
 - `omafetch <modules...>` renders compact identity context first, then requested modules in request order; compact context is `omarchy theme host os kernel wm`.
 - `omafetch list` prints registry module names.
-- `omafetch about` renders the default fetch, then waits for one key when stdin is a TTY. Menu wiring is the user extension `~/.config/omarchy/extensions/omarchy-menu.jsonc`, not a packaged Omarchy binary.
+- `omafetch about` renders the default fetch, then waits for one key when stdin is a TTY. The stock Omarchy About item stays `omarchy-launch-about`; `packaging/omarchy-launch-about` is a user-bin wrapper that launches `omafetch about`.
 - Unknown modules should fail with the unknown name plus the available module list.
 
 ## Architecture

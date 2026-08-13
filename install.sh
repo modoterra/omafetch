@@ -183,14 +183,34 @@ warn_if_not_on_path() {
   esac
 }
 
+about_launcher_path() {
+  local prefix="${1%/}"
+  printf '%s\n' "${prefix}/bin/omarchy-launch-about"
+}
+
+write_about_launcher() {
+  local dest="$1"
+  cat > "$dest" <<'EOF'
+#!/usr/bin/env bash
+# Replace Omarchy's About launcher so the stock menu item opens omafetch.
+exec omarchy-launch-or-focus-tui omafetch about
+EOF
+  chmod 755 "$dest"
+}
+
 uninstall() {
-  local dest
+  local dest launcher
   dest="$(destination_path "$PREFIX")"
+  launcher="$(about_launcher_path "$PREFIX")"
   if [[ -e "$dest" || -L "$dest" ]]; then
     rm -f "$dest" || die "cannot remove ${dest}"
     printf 'removed %s\n' "$dest"
   else
     printf 'omafetch is not installed at %s\n' "$dest"
+  fi
+  if [[ -e "$launcher" || -L "$launcher" ]]; then
+    rm -f "$launcher" || die "cannot remove ${launcher}"
+    printf 'removed %s\n' "$launcher"
   fi
 }
 
@@ -226,6 +246,7 @@ install_release() {
   mkdir -p "$(dirname "$dest")" || die "cannot create $(dirname "$dest")"
   [[ -w "$(dirname "$dest")" ]] || die "cannot write to $(dirname "$dest"); choose another --prefix or rerun with write access"
   install -Dm755 "$extracted" "$dest"
+  write_about_launcher "$(about_launcher_path "$PREFIX")"
 
   "$dest" list >/dev/null || die "installed ${dest}, but omafetch list failed"
   warn_if_not_on_path "$(dirname "$dest")"

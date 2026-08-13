@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Replace Omarchy's About launcher so the stock menu item opens omafetch.
+exec omarchy-launch-or-focus-tui omafetch about
