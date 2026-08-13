@@ -8,6 +8,7 @@ pub struct Cli {
 pub enum Command {
     List,
     Public,
+    About,
 }
 
 impl Cli {
@@ -17,6 +18,7 @@ impl Cli {
         if let Some(command) = args.first().and_then(|arg| match arg.as_str() {
             "list" => Some(Command::List),
             "public" => Some(Command::Public),
+            "about" => Some(Command::About),
             _ => None,
         }) {
             return Self {
@@ -67,6 +69,24 @@ mod tests {
                 modules: Vec::new()
             }
         );
+    }
+
+    #[test]
+    fn parses_about_command() {
+        assert_eq!(
+            Cli::parse(["about".to_string()]),
+            Cli {
+                command: Some(Command::About),
+                modules: Vec::new()
+            }
+        );
+    }
+
+    #[test]
+    fn about_is_not_a_module_name() {
+        let cli = Cli::parse(["about".to_string()]);
+        assert_eq!(cli.command, Some(Command::About));
+        assert!(cli.modules.is_empty());
     }
 
     #[test]

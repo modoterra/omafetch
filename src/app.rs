@@ -1,5 +1,6 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::io::Write;
+use std::mem::MaybeUninit;
 
 use crate::cli::{Cli, Command};
 use crate::modules::registry::ModuleRegistry;
@@ -16,12 +17,13 @@ pub fn run() -> Result<()> {
             output.push('\n');
             write_stdout(&output)?;
         }
-        Some(Command::Public) | None => {
+        Some(Command::Public) | Some(Command::About) | None => {
             let state = OmarchyState::discover();
             let ctx = ModuleContext { omarchy: &state };
             let is_public = matches!(&cli.command, Some(Command::Public));
-            let is_default_output = cli.modules.is_empty() || is_public;
-            let modules = if is_public {
+            let is_about = matches!(&cli.command, Some(Command::About));
+            let is_default_output = cli.modules.is_empty() || is_public || is_about;
+            let modules = if is_public || is_about {
                 registry.resolve_or_defaults(&[])?
             } else {
                 registry.resolve_or_defaults(&cli.modules)?
@@ -36,6 +38,10 @@ pub fn run() -> Result<()> {
                 crate::render::document::RenderDocument::from_outputs(&outputs, is_default_output);
             let output = crate::render::layout::render_document(&state, &document);
             write_stdout(&output)?;
+
+            if is_about {
+                wait_for_key()?;
+            }
         }
     }
 
@@ -46,7 +52,64 @@ fn write_stdout(output: &str) -> Result<()> {
     let stdout = std::io::stdout();
     let mut handle = stdout.lock();
     handle.write_all(output.as_bytes())?;
+    handle.flush()?;
     Ok(())
+}
+
+fn stdin_is_tty() -> bool {
+    // SAFETY: isatty only inspects the stdin file descriptor.
+    unsafe { libc::isatty(libc::STDIN_FILENO) == 1 }
+}
+
+fn wait_for_key() -> Result<()> {
+    if !stdin_is_tty() {
+        return Ok(());
+    }
+
+    let fd = libc::STDIN_FILENO;
+    let mut original = MaybeUninit::<libc::termios>::uninit();
+    // SAFETY: tcgetattr writes a termios into the provided valid pointer.
+    let result = unsafe { libc::tcgetattr(fd, original.as_mut_ptr()) };
+    if result != 0 {
+        anyhow::bail!("could not read terminal attributes");
+    }
+    // SAFETY: tcgetattr returned success, so the structure is initialized.
+    let original = unsafe { original.assume_init() };
+
+    let mut raw = original;
+    raw.c_lflag &= !(libc::ICANON | libc::ECHO);
+    raw.c_cc[libc::VMIN] = 1;
+    raw.c_cc[libc::VTIME] = 0;
+
+    // SAFETY: raw is a fully initialized termios derived from the current settings.
+    if unsafe { libc::tcsetattr(fd, libc::TCSANOW, &raw) } != 0 {
+        anyhow::bail!("could not set terminal to raw mode");
+    }
+
+    let _restore = TerminalRestore { fd, original };
+
+    let mut byte = 0u8;
+    // SAFETY: read writes at most one byte into the local buffer.
+    let read_result = unsafe { libc::read(fd, (&raw mut byte).cast(), 1) };
+    if read_result < 0 {
+        return Err(std::io::Error::last_os_error()).context("could not read key");
+    }
+
+    Ok(())
+}
+
+struct TerminalRestore {
+    fd: libc::c_int,
+    original: libc::termios,
+}
+
+impl Drop for TerminalRestore {
+    fn drop(&mut self) {
+        // SAFETY: original came from a successful tcgetattr on this fd.
+        unsafe {
+            libc::tcsetattr(self.fd, libc::TCSANOW, &self.original);
+        }
+    }
 }
 
 fn collect_outputs(

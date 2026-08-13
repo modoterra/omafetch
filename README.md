@@ -50,6 +50,22 @@ Show the full Omarchy/system view:
 omafetch
 ```
 
+Show that same view and wait for a key (for the Omarchy About window):
+
+```bash
+omafetch about
+```
+
+Point the menu About item at it by adding this to
+`~/.config/omarchy/extensions/omarchy-menu.jsonc`:
+
+```jsonc
+"about": {"action":"omarchy-launch-or-focus-tui \"bash -c 'omafetch about'\""}
+```
+
+`omarchy launch about` and Style → About still use fastfetch until Omarchy
+switches.
+
 List available modules:
 
 ```bash
