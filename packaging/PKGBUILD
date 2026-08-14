@@ -1,6 +1,6 @@
 # Maintainer: Christoffer Hallas <hallas@modoterra.xyz>
 pkgname=omafetch
-pkgver=0.1.1
+pkgver=0.1.2
 pkgrel=1
 pkgdesc='Omarchy-native Rust fetch tool'
 arch=('x86_64')
