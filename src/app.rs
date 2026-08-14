@@ -200,3 +200,31 @@ fn public_disk(value: &str) -> String {
         .collect::<Vec<_>>()
         .join("\n")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn public_source_drops_commit() {
+        assert_eq!(public_source("main (abc123)"), "main");
+        assert_eq!(public_source("edge"), "edge");
+    }
+
+    #[test]
+    fn public_rootfs_drops_compress_flags() {
+        assert_eq!(
+            public_rootfs("btrfs encrypted subvol=/@ compress=zstd:3"),
+            "btrfs encrypted subvol=/@"
+        );
+    }
+
+    #[test]
+    fn public_disk_rewrites_continuation_mounts() {
+        let input = "root  10.0 GiB / 100.0 GiB\nhome  12.0 GiB / 100.0 GiB";
+        assert_eq!(
+            public_disk(input),
+            "root  10.0 GiB / 100.0 GiB\ndisk  12.0 GiB / 100.0 GiB"
+        );
+    }
+}

@@ -43,4 +43,29 @@ mod tests {
             "87% charging"
         );
     }
+
+    #[test]
+    fn formats_battery_partial_fields() {
+        assert_eq!(
+            format_battery(crate::probe::sysfs::BatteryInfo {
+                capacity: Some(40),
+                status: None
+            }),
+            "40%"
+        );
+        assert_eq!(
+            format_battery(crate::probe::sysfs::BatteryInfo {
+                capacity: None,
+                status: Some("full".to_string())
+            }),
+            "full"
+        );
+        assert_eq!(
+            format_battery(crate::probe::sysfs::BatteryInfo {
+                capacity: None,
+                status: None
+            }),
+            "unknown"
+        );
+    }
 }

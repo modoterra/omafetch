@@ -112,4 +112,12 @@ mod tests {
         assert_eq!(basename("/usr/bin/zsh"), Some("zsh".to_string()));
         assert_eq!(basename("fish"), Some("fish".to_string()));
     }
+
+    #[test]
+    fn parses_bash_version_line() {
+        assert_eq!(
+            parse_bash_version("GNU bash, version 5.2.37(1)-release (x86_64-pc-linux-gnu)"),
+            "5.2.37"
+        );
+    }
 }

@@ -104,7 +104,10 @@ pub fn gtt_memory_bytes() -> Option<u64> {
 }
 
 fn selected_bracket_value(path: &str) -> Option<String> {
-    let input = read_to_string(path)?;
+    selected_bracket_value_from(&read_to_string(path)?)
+}
+
+fn selected_bracket_value_from(input: &str) -> Option<String> {
     input
         .split_whitespace()
         .find(|value| value.starts_with('[') && value.ends_with(']'))
@@ -133,6 +136,31 @@ mod tests {
     #[test]
     fn maps_boolish_values() {
         assert_eq!(boolish("Y"), "on");
+        assert_eq!(boolish("y"), "on");
+        assert_eq!(boolish("1"), "on");
         assert_eq!(boolish("N"), "off");
+        assert_eq!(boolish("n"), "off");
+        assert_eq!(boolish("0"), "off");
+        assert_eq!(boolish("active"), "active");
+    }
+
+    #[test]
+    fn reads_selected_bracket_value() {
+        assert_eq!(
+            selected_bracket_value_from("none [voluntary] full"),
+            Some("voluntary".to_string())
+        );
+        assert_eq!(selected_bracket_value_from("none voluntary full"), None);
+    }
+
+    #[test]
+    fn reads_cmdline_values() {
+        let cmdline = "root=/dev/mapper/root iommu=pt ttm.pages_limit=16777216";
+        assert_eq!(cmdline_value(cmdline, "iommu"), Some("pt".to_string()));
+        assert_eq!(
+            cmdline_value(cmdline, "ttm.pages_limit"),
+            Some("16777216".to_string())
+        );
+        assert_eq!(cmdline_value(cmdline, "missing"), None);
     }
 }

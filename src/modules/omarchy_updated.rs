@@ -37,3 +37,32 @@ fn format_pacman_timestamp(value: &str) -> String {
         .unwrap_or(value);
     without_offset.replace('T', " ")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn last_upgraded_line_wins() {
+        let input = concat!(
+            "[2026-07-01T09:00:00-0400] [ALPM] installed omafetch (0.1.0-1)\n",
+            "[2026-07-15T10:00:00-0400] [ALPM] upgraded linux (6.15.1-1 -> 6.15.2-1)\n",
+            "[2026-08-01T12:34:56-0400] [ALPM] upgraded omarchy (4.0.0-1 -> 4.0.0-2)\n",
+            "[2026-08-01T12:35:00-0400] [ALPM] running '30-systemd-update.hook'\n",
+        );
+
+        assert_eq!(
+            last_upgrade_from(input),
+            Some("2026-08-01 12:34:56".to_string())
+        );
+    }
+
+    #[test]
+    fn empty_or_missing_upgrade_yields_none() {
+        assert_eq!(last_upgrade_from(""), None);
+        assert_eq!(
+            last_upgrade_from("[2026-08-01T12:34:56-0400] [ALPM] installed foo (1-1)\n"),
+            None
+        );
+    }
+}

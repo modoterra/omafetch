@@ -89,14 +89,35 @@ pub fn path_age_days(path: impl AsRef<Path>) -> Option<u64> {
     Some(now.saturating_sub(created) / 86_400)
 }
 
+#[derive(Debug, PartialEq, Eq)]
+struct DiskCandidate {
+    device: String,
+    mount: String,
+    fs: String,
+}
+
 pub fn mounted_disk_usages() -> Vec<MountUsage> {
     let Some(mounts) = read_to_string("/proc/mounts") else {
         return Vec::new();
     };
-    let mut seen_devices = Vec::new();
-    let mut usages = Vec::new();
 
-    for line in mounts.lines() {
+    disk_candidates_from(&mounts)
+        .into_iter()
+        .filter_map(|candidate| {
+            fs_usage(&candidate.mount).map(|usage| MountUsage {
+                mount: pretty_mount(&candidate.mount),
+                total_bytes: usage.total_bytes,
+                available_bytes: usage.available_bytes,
+            })
+        })
+        .collect()
+}
+
+fn disk_candidates_from(input: &str) -> Vec<DiskCandidate> {
+    let mut seen_devices = Vec::new();
+    let mut candidates = Vec::new();
+
+    for line in input.lines() {
         let mut fields = line.split_whitespace();
         let Some(device) = fields.next() else {
             continue;
@@ -117,16 +138,14 @@ pub fn mounted_disk_usages() -> Vec<MountUsage> {
         }
         seen_devices.push(device);
 
-        if let Some(usage) = fs_usage(mount) {
-            usages.push(MountUsage {
-                mount: pretty_mount(mount),
-                total_bytes: usage.total_bytes,
-                available_bytes: usage.available_bytes,
-            });
-        }
+        candidates.push(DiskCandidate {
+            device: device.to_string(),
+            mount: mount.to_string(),
+            fs: fs.to_string(),
+        });
     }
 
-    usages
+    candidates
 }
 
 fn is_disk_fs(fs: &str) -> bool {
@@ -142,5 +161,52 @@ fn pretty_mount(mount: &str) -> String {
             .trim_start_matches("/mnt/")
             .trim_start_matches('/')
             .to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filters_disk_candidates_from_mounts() {
+        let input = concat!(
+            "/dev/mapper/root / btrfs rw,relatime 0 0\n",
+            "/dev/mapper/home /home ext4 rw,relatime 0 0\n",
+            "/dev/nvme0n1p1 /boot vfat rw,relatime 0 0\n",
+            "tmpfs /tmp tmpfs rw 0 0\n",
+            "proc /proc proc rw 0 0\n",
+            "/dev/sdb1 /mnt/data ext4 rw,relatime 0 0\n",
+            "/dev/sdb1 /mnt/data-dup ext4 rw,relatime 0 0\n",
+        );
+
+        let candidates = disk_candidates_from(input);
+        let summarized = candidates
+            .iter()
+            .map(|candidate| {
+                (
+                    candidate.device.as_str(),
+                    pretty_mount(&candidate.mount),
+                    candidate.fs.as_str(),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            summarized,
+            vec![
+                ("/dev/mapper/root", "root".to_string(), "btrfs"),
+                ("/dev/mapper/home", "home".to_string(), "ext4"),
+                ("/dev/sdb1", "data".to_string(), "ext4"),
+            ]
+        );
+    }
+
+    #[test]
+    fn names_known_mounts() {
+        assert_eq!(pretty_mount("/"), "root");
+        assert_eq!(pretty_mount("/home"), "home");
+        assert_eq!(pretty_mount("/boot"), "boot");
+        assert_eq!(pretty_mount("/mnt/data"), "data");
     }
 }

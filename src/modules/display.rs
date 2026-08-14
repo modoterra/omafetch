@@ -122,4 +122,33 @@ mod tests {
             Some("PA32QCV 3840x2160 120 Hz 2x".to_string())
         );
     }
+
+    #[test]
+    fn joins_multiple_hyprctl_displays() {
+        let input = concat!(
+            "Monitor DP-1 (ID 0):\n\t3840x2160@120.00 at 0x0\n\tmodel: PA32QCV\n\tscale: 2.00\n",
+            "Monitor HDMI-A-1 (ID 1):\n\t1920x1080@60.00 at 3840x0\n\tmodel: DELL\n\tscale: 1.00\n",
+        );
+
+        assert_eq!(
+            display_from_hyprctl(input),
+            Some("PA32QCV 3840x2160 120 Hz 2x, DELL 1920x1080 60 Hz 1x".to_string())
+        );
+    }
+
+    #[test]
+    fn formats_display_without_model() {
+        let input = "Monitor DP-1 (ID 0):\n\t2560x1440@144.00 at 0x0\n\tscale: 1.25\n";
+
+        assert_eq!(
+            display_from_hyprctl(input),
+            Some("2560x1440 144 Hz 1.25x".to_string())
+        );
+    }
+
+    #[test]
+    fn empty_hyprctl_yields_no_display() {
+        assert_eq!(display_from_hyprctl(""), None);
+        assert_eq!(display_from_hyprctl("Monitor DP-1 (ID 0):\n"), None);
+    }
 }
