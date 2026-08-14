@@ -151,7 +151,7 @@ fn highlight_value(name: &str, value: &str) -> String {
     match name {
         "omarchy" | "omarchy-source" | "omarchy-channel" | "theme" => value.cyan().to_string(),
         "kernel-config" => highlight_key_value(value),
-        "wm" | "terminal" | "shell" => value.blue().to_string(),
+        "wm" | "terminal" | "font" | "shell" => value.blue().to_string(),
         "gpu" | "gtt-memory" | "display" => value.magenta().to_string(),
         "memory" | "swap" => highlight_usage(value),
         "disk" => highlight_disk(value),

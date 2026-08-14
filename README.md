@@ -141,6 +141,7 @@ kernel
 kernel-config
 wm
 terminal
+font
 shell
 display
 cpu

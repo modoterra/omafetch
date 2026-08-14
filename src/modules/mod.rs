@@ -5,6 +5,7 @@ mod battery;
 mod cpu;
 mod disk;
 mod display;
+mod font;
 mod gpu;
 mod gtt_memory;
 mod host;
