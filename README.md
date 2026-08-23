@@ -212,4 +212,8 @@ It builds the release binary and installs:
 /usr/share/licenses/omafetch/LICENSE
 ```
 
+## Community
+
+Use common sense and decency. There is no formal code of conduct. We reserve the right to moderate this community to the extent of the law and the policy of the host. Write community@modoterra.xyz if you need us.
+
 License: MIT, Copyright (c) 2026 Modoterra Corporation.
